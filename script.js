@@ -3,475 +3,363 @@ const API_URL = "https://www.omdbapi.com/";
 
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
-
 const movieGrid = document.getElementById("movieGrid");
-
 const loading = document.getElementById("loading");
 const errorMessage = document.getElementById("errorMessage");
-
 const resultsTitle = document.getElementById("resultsTitle");
 const resultCount = document.getElementById("resultCount");
-
 const pagination = document.getElementById("pagination");
 
-const modal = document.getElementById("movieModal");
-const movieDetails = document.getElementById("movieDetails");
+const movieModal = document.getElementById("movieModal");
+const modalBody = document.getElementById("modalBody");
 const closeModal = document.getElementById("closeModal");
 
 let currentSearch = "Batman";
 let currentPage = 1;
+let totalResults = 0;
 
+/* SEARCH MOVIES */
 
-/* =========================
-   SEARCH MOVIES
-========================= */
+async function searchMovies(searchTerm, page = 1) {
+  if (!searchTerm.trim()) {
+    showError("Please enter a movie title.");
+    return;
+  }
 
-async function searchMovies(query, page = 1) {
+  currentSearch = searchTerm;
+  currentPage = page;
 
-    if (!query.trim()) {
-        return;
+  movieGrid.innerHTML = "";
+  pagination.innerHTML = "";
+  errorMessage.style.display = "none";
+  loading.style.display = "block";
+
+  resultsTitle.textContent = `Results for "${searchTerm}"`;
+  resultCount.textContent = "";
+
+  try {
+    const url =
+      `${API_URL}?apikey=${API_KEY}` +
+      `&s=${encodeURIComponent(searchTerm)}` +
+      `&type=movie` +
+      `&page=${page}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Network error");
     }
 
-    currentSearch = query;
-    currentPage = page;
+    const data = await response.json();
 
-    showLoading();
+    loading.style.display = "none";
 
-    try {
-
-        const response = await fetch(
-            `${API_URL}?apikey=${API_KEY}&s=${encodeURIComponent(query)}&type=movie&page=${page}`
-        );
-
-        const data = await response.json();
-
-        hideLoading();
-
-        if (data.Response === "False") {
-
-            showError();
-
-            movieGrid.innerHTML = "";
-
-            pagination.innerHTML = "";
-
-            return;
-        }
-
-        hideError();
-
-        resultsTitle.textContent = `Results for "${query}"`;
-
-        resultCount.textContent =
-            `${data.totalResults} movies`;
-
-        displayMovies(data.Search);
-
-        createPagination(
-            Math.ceil(Number(data.totalResults) / 10)
-        );
-
-    } catch (error) {
-
-        hideLoading();
-
-        showError();
-
-        console.error(error);
-
+    if (data.Response === "False") {
+      showError(data.Error || "No movies found.");
+      return;
     }
 
+    totalResults = Number(data.totalResults);
+
+    resultCount.textContent = `${totalResults.toLocaleString()} movies found`;
+
+    displayMovies(data.Search);
+
+    createPagination();
+  } catch (error) {
+    loading.style.display = "none";
+
+    showError("Something went wrong while searching. Please try again.");
+
+    console.error(error);
+  }
 }
 
-
-/* =========================
-   DISPLAY MOVIES
-========================= */
+/* DISPLAY MOVIES */
 
 function displayMovies(movies) {
+  movieGrid.innerHTML = "";
 
-    movieGrid.innerHTML = "";
+  movies.forEach((movie) => {
+    const card = document.createElement("article");
 
-    movies.forEach(movie => {
+    card.className = "movie-card";
 
-        const card = document.createElement("article");
+    const poster =
+      movie.Poster !== "N/A"
+        ? movie.Poster
+        : "https://via.placeholder.com/300x450?text=No+Poster";
 
-        card.className = "movie-card";
-
-        let posterHTML;
-
-        if (movie.Poster && movie.Poster !== "N/A") {
-
-            posterHTML = `
+    card.innerHTML = `
+            <div class="poster-container">
                 <img
-                    class="poster"
-                    src="${movie.Poster}"
-                    alt="${movie.Title}"
+                    src="${poster}"
+                    alt="${escapeHTML(movie.Title)}"
                     loading="lazy"
                 >
-            `;
-
-        } else {
-
-            posterHTML = `
-                <div class="no-poster">
-                    <i class="fa-solid fa-film"></i>
-                </div>
-            `;
-
-        }
-
-        card.innerHTML = `
-
-            ${posterHTML}
+            </div>
 
             <div class="movie-info">
 
                 <div class="movie-title">
-                    ${movie.Title}
+                    ${escapeHTML(movie.Title)}
                 </div>
 
                 <div class="movie-meta">
-
-                    <span class="movie-type">
-                        ${movie.Year}
-                    </span>
-
-                    <span>
-                        ${movie.Type}
-                    </span>
-
+                    <span>${movie.Year}</span>
+                    <span>${movie.Type}</span>
                 </div>
 
             </div>
-
         `;
 
-        card.addEventListener(
-            "click",
-            () => getMovieDetails(movie.imdbID)
-        );
-
-        movieGrid.appendChild(card);
-
+    card.addEventListener("click", () => {
+      getMovieDetails(movie.imdbID);
     });
 
+    movieGrid.appendChild(card);
+  });
 }
 
-
-/* =========================
-   MOVIE DETAILS
-========================= */
+/* GET MOVIE DETAILS */
 
 async function getMovieDetails(imdbID) {
+  movieModal.classList.add("show");
 
-    modal.classList.add("show");
-
-    movieDetails.innerHTML = `
-
-        <div class="loading" style="display:block">
-
-            <div class="spinner"></div>
-
-            <p>Loading movie...</p>
-
+  modalBody.innerHTML = `
+        <div class="loading">
+            Loading movie details...
         </div>
-
     `;
 
-    try {
+  try {
+    const url =
+      `${API_URL}?apikey=${API_KEY}` +
+      `&i=${encodeURIComponent(imdbID)}` +
+      `&plot=full`;
 
-        const response = await fetch(
-            `${API_URL}?apikey=${API_KEY}&i=${imdbID}&plot=full`
-        );
+    const response = await fetch(url);
 
-        const movie = await response.json();
+    const movie = await response.json();
 
-        if (movie.Response === "False") {
+    if (movie.Response === "False") {
+      throw new Error(movie.Error);
+    }
 
-            movieDetails.innerHTML = `
-                <div class="error-message" style="display:block">
-                    Unable to load movie details.
-                </div>
-            `;
+    const poster =
+      movie.Poster !== "N/A"
+        ? movie.Poster
+        : "https://via.placeholder.com/300x450?text=No+Poster";
 
-            return;
-        }
+    modalBody.innerHTML = `
+            <div class="modal-movie">
 
-        let poster;
-
-        if (movie.Poster && movie.Poster !== "N/A") {
-
-            poster = `
                 <img
-                    class="details-poster"
-                    src="${movie.Poster}"
-                    alt="${movie.Title}"
+                    src="${poster}"
+                    alt="${escapeHTML(movie.Title)}"
                 >
-            `;
 
-        } else {
+                <div class="modal-details">
 
-            poster = `
-                <div class="no-poster details-poster">
-                    <i class="fa-solid fa-film"></i>
-                </div>
-            `;
+                    <h2>${escapeHTML(movie.Title)}</h2>
 
-        }
-
-
-        movieDetails.innerHTML = `
-
-            <div class="details">
-
-                ${poster}
-
-                <div class="details-content">
-
-                    <h2>
-                        ${movie.Title}
-                    </h2>
-
-                    <p class="details-tagline">
-                        ${movie.Year} • ${movie.Rated} • ${movie.Runtime}
+                    <p>
+                        <strong>${movie.Year}</strong>
+                        &nbsp; • &nbsp;
+                        ${movie.Runtime}
+                        &nbsp; • &nbsp;
+                        ${movie.Rated}
                     </p>
 
-
-                    <div class="details-meta">
-
-                        <span>
-                            <i class="fa-solid fa-star"></i>
-                            ${movie.imdbRating}
-                        </span>
-
-                        <span>
-                            <i class="fa-solid fa-film"></i>
-                            ${movie.Genre}
-                        </span>
-
-                        <span>
-                            <i class="fa-solid fa-globe"></i>
-                            ${movie.Language}
-                        </span>
-
-                    </div>
-
-
-                    <h3>Overview</h3>
-
-                    <p class="plot">
-                        ${movie.Plot}
+                    <p>
+                        <strong>Genre:</strong>
+                        ${escapeHTML(movie.Genre)}
                     </p>
 
-
-                    <div class="detail-row">
+                    <p>
                         <strong>Director:</strong>
-                        <span>${movie.Director}</span>
-                    </div>
+                        ${escapeHTML(movie.Director)}
+                    </p>
 
-                    <div class="detail-row">
-                        <strong>Actors:</strong>
-                        <span>${movie.Actors}</span>
-                    </div>
+                    <p>
+                        <strong>Cast:</strong>
+                        ${escapeHTML(movie.Actors)}
+                    </p>
 
-                    <div class="detail-row">
-                        <strong>Writer:</strong>
-                        <span>${movie.Writer}</span>
-                    </div>
+                    <p>
+                        <strong>IMDb Rating:</strong>
+                        ${movie.imdbRating}
+                    </p>
 
-                    <div class="detail-row">
-                        <strong>Released:</strong>
-                        <span>${movie.Released}</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <strong>Awards:</strong>
-                        <span>${movie.Awards}</span>
-                    </div>
+                    <p>
+                        ${escapeHTML(movie.Plot)}
+                    </p>
 
                 </div>
 
             </div>
-
         `;
-
-    } catch (error) {
-
-        movieDetails.innerHTML = `
-            <div class="error-message" style="display:block">
-                Something went wrong loading this movie.
+  } catch (error) {
+    modalBody.innerHTML = `
+            <div class="error-message" style="display:block;">
+                Unable to load movie details.
             </div>
         `;
 
-        console.error(error);
-
-    }
-
+    console.error(error);
+  }
 }
 
+/* PAGINATION */
 
-/* =========================
-   PAGINATION
-========================= */
+function createPagination() {
+  pagination.innerHTML = "";
 
-function createPagination(totalPages) {
+  const totalPages = Math.ceil(totalResults / 10);
 
-    pagination.innerHTML = "";
+  if (totalPages <= 1) {
+    return;
+  }
 
-    const maxPages = Math.min(totalPages, 10);
+  const previousButton = document.createElement("button");
 
-    for (let i = 1; i <= maxPages; i++) {
+  previousButton.textContent = "← Previous";
 
-        const button = document.createElement("button");
+  previousButton.disabled = currentPage === 1;
 
-        button.textContent = i;
+  previousButton.addEventListener("click", () => {
+    if (currentPage > 1) {
+      searchMovies(currentSearch, currentPage - 1);
+      window.scrollTo({
+        top: document.querySelector(".movies-section").offsetTop,
+        behavior: "smooth",
+      });
+    }
+  });
 
-        if (i === currentPage) {
-            button.classList.add("active");
-        }
+  pagination.appendChild(previousButton);
 
-        button.addEventListener("click", () => {
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, currentPage + 2);
 
-            searchMovies(currentSearch, i);
+  for (let page = startPage; page <= endPage; page++) {
+    const button = document.createElement("button");
 
-            window.scrollTo({
-                top: document.getElementById("movies").offsetTop - 30,
-                behavior: "smooth"
-            });
+    button.textContent = page;
 
-        });
-
-        pagination.appendChild(button);
-
+    if (page === currentPage) {
+      button.classList.add("active");
     }
 
+    button.addEventListener("click", () => {
+      searchMovies(currentSearch, page);
+
+      window.scrollTo({
+        top: document.querySelector(".movies-section").offsetTop,
+        behavior: "smooth",
+      });
+    });
+
+    pagination.appendChild(button);
+  }
+
+  const nextButton = document.createElement("button");
+
+  nextButton.textContent = "Next →";
+
+  nextButton.disabled = currentPage === totalPages;
+
+  nextButton.addEventListener("click", () => {
+    if (currentPage < totalPages) {
+      searchMovies(currentSearch, currentPage + 1);
+
+      window.scrollTo({
+        top: document.querySelector(".movies-section").offsetTop,
+        behavior: "smooth",
+      });
+    }
+  });
+
+  pagination.appendChild(nextButton);
 }
 
+/* ERROR */
 
-/* =========================
-   SEARCH BUTTON
-========================= */
+function showError(message) {
+  errorMessage.textContent = message;
+  errorMessage.style.display = "block";
+
+  movieGrid.innerHTML = "";
+  pagination.innerHTML = "";
+}
+
+/* SEARCH BUTTON */
 
 searchButton.addEventListener("click", () => {
-
-    searchMovies(searchInput.value);
-
+  searchMovies(searchInput.value.trim(), 1);
 });
-
 
 /* ENTER KEY */
 
-searchInput.addEventListener("keydown", event => {
-
-    if (event.key === "Enter") {
-
-        searchMovies(searchInput.value);
-
-    }
-
+searchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    searchMovies(searchInput.value.trim(), 1);
+  }
 });
 
+/* QUICK SEARCH BUTTONS */
 
-/* =========================
-   QUICK SEARCH BUTTONS
-========================= */
+document.querySelectorAll(".quick-btn").forEach((button) => {
+  button.addEventListener("click", () => {
+    const searchTerm = button.dataset.search;
 
-document.querySelectorAll("[data-search]").forEach(button => {
+    searchInput.value = searchTerm;
 
-    button.addEventListener("click", () => {
+    searchMovies(searchTerm, 1);
 
-        const query = button.dataset.search;
-
-        searchInput.value = query;
-
-        searchMovies(query);
-
-        document.getElementById("movies").scrollIntoView({
-            behavior: "smooth"
-        });
-
+    document.getElementById("movies").scrollIntoView({
+      behavior: "smooth",
     });
-
+  });
 });
 
-
-/* =========================
-   CLOSE MODAL
-========================= */
+/* CLOSE MODAL */
 
 closeModal.addEventListener("click", () => {
-
-    modal.classList.remove("show");
-
+  movieModal.classList.remove("show");
 });
 
+/* CLOSE MODAL WHEN CLICKING OUTSIDE */
 
-document.querySelector(".modal-backdrop").addEventListener(
-    "click",
-    () => {
-        modal.classList.remove("show");
-    }
-);
-
-
-/* ESC KEY */
-
-document.addEventListener("keydown", event => {
-
-    if (event.key === "Escape") {
-
-        modal.classList.remove("show");
-
-    }
-
+movieModal.addEventListener("click", (event) => {
+  if (event.target === movieModal) {
+    movieModal.classList.remove("show");
+  }
 });
 
+/* ESCAPE KEY CLOSES MODAL */
 
-/* =========================
-   UI HELPERS
-========================= */
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    movieModal.classList.remove("show");
+  }
+});
 
-function showLoading() {
+/* BASIC HTML ESCAPING */
 
-    loading.style.display = "block";
+function escapeHTML(value) {
+  if (!value) {
+    return "";
+  }
 
-    movieGrid.style.display = "none";
-
-    pagination.style.display = "none";
-
-    errorMessage.style.display = "none";
-
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
+/* INITIAL SEARCH */
 
-function hideLoading() {
-
-    loading.style.display = "none";
-
-    movieGrid.style.display = "grid";
-
-    pagination.style.display = "flex";
-
-}
-
-
-function showError() {
-
-    errorMessage.style.display = "block";
-
-}
-
-
-function hideError() {
-
-    errorMessage.style.display = "none";
-
-}
-
-
-/* =========================
-   INITIAL MOVIES
-========================= */
-
-searchMovies("Batman");
+searchMovies("Batman", 1);
