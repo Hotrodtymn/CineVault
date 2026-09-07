@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>CineVault | Discover Movies</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <!-- NAVIGATION -->
+    <header class="navbar">
+      <div class="nav-container">
+        <a href="#" class="logo">
+          <i class="fa-solid fa-film"></i>
+          <span>Cine<span>Vault</span></span>
+        </a>
+
+        <nav>
+          <a href="#" class="active">Home</a>
+          <a href="#movies">Movies</a>
+          <a href="#popular">Popular</a>
+        </nav>
+
+        <button class="mobile-menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-overlay"></div>
+
+      <div class="hero-content">
+        <span class="hero-label">
+          <i class="fa-solid fa-play"></i>
+          MOVIE DISCOVERY
+        </span>
+
+        <h1>
+          Find your next
+          <span>favorite movie.</span>
+        </h1>
+
+        <p>
+          Search thousands of movies and discover what you should watch next.
+        </p>
+
+        <div class="hero-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search movies..."
+            autocomplete="off"
+          />
+
+          <button id="searchButton">Search</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN -->
+    <main>
+      <!-- QUICK SEARCHES -->
+      <section class="quick-search">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">EXPLORE</span>
+            <h2>Popular searches</h2>
+          </div>
+        </div>
+
+        <div class="genre-buttons">
+          <button data-search="Batman">Batman</button>
+
+          <button data-search="Marvel">Marvel</button>
+
+          <button data-search="Star Wars">Star Wars</button>
+
+          <button data-search="Harry Potter">Harry Potter</button>
+
+          <button data-search="Lord of the Rings">Lord of the Rings</button>
+
+          <button data-search="James Bond">James Bond</button>
+        </div>
+      </section>
+
+      <!-- MOVIES -->
+      <section class="movies-section" id="movies">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">DISCOVER</span>
+            <h2 id="resultsTitle">Popular Movies</h2>
+          </div>
+
+          <span class="result-count" id="resultCount"></span>
+        </div>
+
+        <!-- LOADING -->
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+
+          <p>Finding movies...</p>
+        </div>
+
+        <!-- ERROR -->
+        <div class="error-message" id="errorMessage">
+          <i class="fa-solid fa-circle-exclamation"></i>
+
+          <h3>No movies found</h3>
+
+          <p>Try searching for another movie.</p>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="movie-grid" id="movieGrid"></div>
+
+        <!-- PAGINATION -->
+        <div class="pagination" id="pagination"></div>
+      </section>
+    </main>
+
+    <!-- MOVIE MODAL -->
+    <div class="modal" id="movieModal">
+      <div class="modal-backdrop"></div>
+
+      <div class="modal-content">
+        <button class="close-modal" id="closeModal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div id="movieDetails"></div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-container">
+        <div class="footer-logo">
+          <i class="fa-solid fa-film"></i>
+          CineVault
+        </div>
+
+        <p>Discover movies. Find something great to watch.</p>
+
+        <span class="copyright"> Movie information provided by OMDb API. </span>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
