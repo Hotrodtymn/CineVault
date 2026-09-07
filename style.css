@@ -444,3 +444,44 @@ footer {
     font-size: 28px;
   }
 }
+
+.sort-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sort-container label {
+    color: #888895;
+    font-size: 14px;
+}
+
+#sortSelect {
+    background: #18181f;
+    color: white;
+    border: 1px solid #30303a;
+    border-radius: 6px;
+    padding: 10px 35px 10px 12px;
+    cursor: pointer;
+    outline: none;
+}
+
+#sortSelect:hover {
+    border-color: #555562;
+}
+
+#sortSelect option {
+    background: #18181f;
+    color: white;
+}
+
+@media (max-width: 700px) {
+    .sort-container {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    #sortSelect {
+        flex: 1;
+    }
+}

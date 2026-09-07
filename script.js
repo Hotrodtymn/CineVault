@@ -9,6 +9,7 @@ const errorMessage = document.getElementById("errorMessage");
 const resultsTitle = document.getElementById("resultsTitle");
 const resultCount = document.getElementById("resultCount");
 const pagination = document.getElementById("pagination");
+const sortSelect = document.getElementById("sortSelect");
 
 const movieModal = document.getElementById("movieModal");
 const modalBody = document.getElementById("modalBody");
@@ -17,8 +18,11 @@ const closeModal = document.getElementById("closeModal");
 let currentSearch = "Batman";
 let currentPage = 1;
 let totalResults = 0;
+let currentMovies = [];
 
-/* SEARCH MOVIES */
+/* =========================
+   SEARCH MOVIES
+========================= */
 
 async function searchMovies(searchTerm, page = 1) {
   if (!searchTerm.trim()) {
@@ -63,7 +67,9 @@ async function searchMovies(searchTerm, page = 1) {
 
     resultCount.textContent = `${totalResults.toLocaleString()} movies found`;
 
-    displayMovies(data.Search);
+    currentMovies = data.Search;
+
+    displayMovies(currentMovies);
 
     createPagination();
   } catch (error) {
@@ -75,12 +81,40 @@ async function searchMovies(searchTerm, page = 1) {
   }
 }
 
-/* DISPLAY MOVIES */
+/* =========================
+   DISPLAY MOVIES
+========================= */
 
 function displayMovies(movies) {
+  if (!movies || movies.length === 0) {
+    movieGrid.innerHTML = "";
+    return;
+  }
+
+  let sortedMovies = [...movies];
+
+  const sortType = sortSelect.value;
+
+  /* TITLE A-Z */
+
+  if (sortType === "title-asc") {
+    sortedMovies.sort((a, b) => a.Title.localeCompare(b.Title));
+  } else if (sortType === "title-desc") {
+    /* TITLE Z-A */
+    sortedMovies.sort((a, b) => b.Title.localeCompare(a.Title));
+  } else if (sortType === "year-desc") {
+    /* NEWEST */
+    sortedMovies.sort((a, b) => getYear(b.Year) - getYear(a.Year));
+  } else if (sortType === "year-asc") {
+    /* OLDEST */
+    sortedMovies.sort((a, b) => getYear(a.Year) - getYear(b.Year));
+  }
+
+  /* DISPLAY */
+
   movieGrid.innerHTML = "";
 
-  movies.forEach((movie) => {
+  sortedMovies.forEach((movie) => {
     const card = document.createElement("article");
 
     card.className = "movie-card";
@@ -91,13 +125,17 @@ function displayMovies(movies) {
         : "https://via.placeholder.com/300x450?text=No+Poster";
 
     card.innerHTML = `
+
             <div class="poster-container">
+
                 <img
                     src="${poster}"
                     alt="${escapeHTML(movie.Title)}"
                     loading="lazy"
                 >
+
             </div>
+
 
             <div class="movie-info">
 
@@ -105,12 +143,21 @@ function displayMovies(movies) {
                     ${escapeHTML(movie.Title)}
                 </div>
 
+
                 <div class="movie-meta">
-                    <span>${movie.Year}</span>
-                    <span>${movie.Type}</span>
+
+                    <span>
+                        ${movie.Year}
+                    </span>
+
+                    <span>
+                        ${movie.Type}
+                    </span>
+
                 </div>
 
             </div>
+
         `;
 
     card.addEventListener("click", () => {
@@ -121,15 +168,19 @@ function displayMovies(movies) {
   });
 }
 
-/* GET MOVIE DETAILS */
+/* =========================
+   GET MOVIE DETAILS
+========================= */
 
 async function getMovieDetails(imdbID) {
   movieModal.classList.add("show");
 
   modalBody.innerHTML = `
+
         <div class="loading">
             Loading movie details...
         </div>
+
     `;
 
   try {
@@ -152,65 +203,116 @@ async function getMovieDetails(imdbID) {
         : "https://via.placeholder.com/300x450?text=No+Poster";
 
     modalBody.innerHTML = `
+
             <div class="modal-movie">
+
 
                 <img
                     src="${poster}"
                     alt="${escapeHTML(movie.Title)}"
                 >
 
+
                 <div class="modal-details">
 
-                    <h2>${escapeHTML(movie.Title)}</h2>
+
+                    <h2>
+                        ${escapeHTML(movie.Title)}
+                    </h2>
+
 
                     <p>
-                        <strong>${movie.Year}</strong>
+
+                        <strong>
+                            ${movie.Year}
+                        </strong>
+
                         &nbsp; • &nbsp;
+
                         ${movie.Runtime}
+
                         &nbsp; • &nbsp;
+
                         ${movie.Rated}
+
                     </p>
 
+
                     <p>
-                        <strong>Genre:</strong>
+
+                        <strong>
+                            Genre:
+                        </strong>
+
                         ${escapeHTML(movie.Genre)}
+
                     </p>
 
+
                     <p>
-                        <strong>Director:</strong>
+
+                        <strong>
+                            Director:
+                        </strong>
+
                         ${escapeHTML(movie.Director)}
+
                     </p>
 
+
                     <p>
-                        <strong>Cast:</strong>
+
+                        <strong>
+                            Cast:
+                        </strong>
+
                         ${escapeHTML(movie.Actors)}
+
                     </p>
 
+
                     <p>
-                        <strong>IMDb Rating:</strong>
+
+                        <strong>
+                            IMDb Rating:
+                        </strong>
+
                         ${movie.imdbRating}
+
                     </p>
+
 
                     <p>
                         ${escapeHTML(movie.Plot)}
                     </p>
 
+
                 </div>
 
             </div>
+
         `;
   } catch (error) {
     modalBody.innerHTML = `
-            <div class="error-message" style="display:block;">
+
+            <div
+                class="error-message"
+                style="display:block;"
+            >
+
                 Unable to load movie details.
+
             </div>
+
         `;
 
     console.error(error);
   }
 }
 
-/* PAGINATION */
+/* =========================
+   PAGINATION
+========================= */
 
 function createPagination() {
   pagination.innerHTML = "";
@@ -221,6 +323,8 @@ function createPagination() {
     return;
   }
 
+  /* PREVIOUS */
+
   const previousButton = document.createElement("button");
 
   previousButton.textContent = "← Previous";
@@ -230,6 +334,7 @@ function createPagination() {
   previousButton.addEventListener("click", () => {
     if (currentPage > 1) {
       searchMovies(currentSearch, currentPage - 1);
+
       window.scrollTo({
         top: document.querySelector(".movies-section").offsetTop,
         behavior: "smooth",
@@ -239,7 +344,10 @@ function createPagination() {
 
   pagination.appendChild(previousButton);
 
+  /* PAGE NUMBERS */
+
   const startPage = Math.max(1, currentPage - 2);
+
   const endPage = Math.min(totalPages, currentPage + 2);
 
   for (let page = startPage; page <= endPage; page++) {
@@ -263,6 +371,8 @@ function createPagination() {
     pagination.appendChild(button);
   }
 
+  /* NEXT */
+
   const nextButton = document.createElement("button");
 
   nextButton.textContent = "Next →";
@@ -283,23 +393,31 @@ function createPagination() {
   pagination.appendChild(nextButton);
 }
 
-/* ERROR */
+/* =========================
+   ERROR MESSAGE
+========================= */
 
 function showError(message) {
   errorMessage.textContent = message;
+
   errorMessage.style.display = "block";
 
   movieGrid.innerHTML = "";
+
   pagination.innerHTML = "";
 }
 
-/* SEARCH BUTTON */
+/* =========================
+   SEARCH BUTTON
+========================= */
 
 searchButton.addEventListener("click", () => {
   searchMovies(searchInput.value.trim(), 1);
 });
 
-/* ENTER KEY */
+/* =========================
+   ENTER KEY
+========================= */
 
 searchInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -307,7 +425,9 @@ searchInput.addEventListener("keydown", (event) => {
   }
 });
 
-/* QUICK SEARCH BUTTONS */
+/* =========================
+   QUICK SEARCH BUTTONS
+========================= */
 
 document.querySelectorAll(".quick-btn").forEach((button) => {
   button.addEventListener("click", () => {
@@ -323,13 +443,25 @@ document.querySelectorAll(".quick-btn").forEach((button) => {
   });
 });
 
-/* CLOSE MODAL */
+/* =========================
+   SORT MOVIES
+========================= */
+
+sortSelect.addEventListener("change", () => {
+  displayMovies(currentMovies);
+});
+
+/* =========================
+   CLOSE MODAL
+========================= */
 
 closeModal.addEventListener("click", () => {
   movieModal.classList.remove("show");
 });
 
-/* CLOSE MODAL WHEN CLICKING OUTSIDE */
+/* =========================
+   CLOSE MODAL OUTSIDE
+========================= */
 
 movieModal.addEventListener("click", (event) => {
   if (event.target === movieModal) {
@@ -337,7 +469,9 @@ movieModal.addEventListener("click", (event) => {
   }
 });
 
-/* ESCAPE KEY CLOSES MODAL */
+/* =========================
+   ESCAPE KEY
+========================= */
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
@@ -345,7 +479,19 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-/* BASIC HTML ESCAPING */
+/* =========================
+   GET YEAR
+========================= */
+
+function getYear(year) {
+  const match = String(year).match(/\d{4}/);
+
+  return match ? Number(match[0]) : 0;
+}
+
+/* =========================
+   HTML ESCAPING
+========================= */
 
 function escapeHTML(value) {
   if (!value) {
@@ -354,12 +500,18 @@ function escapeHTML(value) {
 
   return String(value)
     .replace(/&/g, "&amp;")
+
     .replace(/</g, "&lt;")
+
     .replace(/>/g, "&gt;")
+
     .replace(/"/g, "&quot;")
+
     .replace(/'/g, "&#039;");
 }
 
-/* INITIAL SEARCH */
+/* =========================
+   INITIAL SEARCH
+========================= */
 
 searchMovies("Batman", 1);
